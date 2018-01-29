@@ -68,9 +68,7 @@ def create_test_files():
 def list_tree():
     '''Creates files in test dirs, some same, some not'''
     npath = HOME
-    print('-'*40)
-    print ('Showing Directory contents')
-    
+    print ('Showing Directory contents')    
     for dirs,subdirs,files in os.walk(npath):
         npath = os.path.join(npath,dirs)
         print(dirs)
@@ -82,10 +80,7 @@ def get_all_files():
     '''compares files'''   
     npath = HOME
     file_list = set()
-    
-    print('-'*40)
-    print('Getting Files')
-    
+    print('Getting Files')  
     for dirs,_,files in os.walk(npath):
         npath = os.path.join(npath,dirs)
         for name in files:
@@ -96,17 +91,24 @@ def get_all_files():
     
 def compare_by_filecmp(mylist):
     '''Comparing files in list, actually a set'''    
-    print('-'*40)
-    print('Compare by filecmp')
-    
+    print('Compare by filecmp')  
     for a,b in itertools.combinations(mylist,2):
         if filecmp.cmp(a,b):
             pass
+
+
+def compare_by_name(mylist):
+    '''Comparing files in list by size, actually a set'''    
+    print('Compare by size')
+    adict = {}
+    for i in mylist:
+        filename,path = os.path.basename(i)
+        adict.setdefault(filename,[]).append(i)
+    return adict
         
         
 def compare_by_size(mylist):
     '''Comparing files in list by size, actually a set'''    
-    print('-'*40)
     print('Compare by size')
     adict = {}
     for i in mylist:
@@ -117,7 +119,6 @@ def compare_by_size(mylist):
 
 def compare_by_hash(mylist):
     '''Comparing files in list by hash, actually a set'''    
-    print('-'*40)
     print('Compare by hash')
     adict = {}
     for i in mylist:
@@ -136,7 +137,6 @@ def get_hash_md5(filename):
         
 def pretty_sort(adict):
     '''print dict sorted by key, then values'''
-    print('-'*40)
     print("Pretty Sort")
     for key,values in sorted(adict.items()):
         print (key)
@@ -146,7 +146,6 @@ def pretty_sort(adict):
 
 def list_dupes(adict):
     '''Show duplicatesk'''
-    print('-'*40)
     print("Show Duplicates")
     for key,values in sorted(adict.items()):
         if len(values) > 1:
