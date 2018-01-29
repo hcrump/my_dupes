@@ -1,6 +1,6 @@
 import os
 import hashlib
-
+import subprocess
 from PyQt5.QtWidgets import (QApplication,  QMainWindow, QFileSystemModel,
                              QTreeView,QListView,QTreeWidgetItem,QMessageBox)
 from PyQt5 import QtGui
@@ -24,6 +24,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.filetree.setSortingEnabled(True)        
         self.filetree.setWindowTitle('Dir View')
         self.filetree.setMinimumSize(600,300)
+        #self.filetree.setMaximumHeight(300)
         self.filetree.setColumnWidth(0,350)
         self.filetree.setColumnWidth(1,75)
         self.filetree.setColumnWidth(2,50)
@@ -32,7 +33,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #setup shortlist
         self.shortlist.setWindowTitle('Selected Paths')
         self.shortlist.setMinimumSize(300,300)
+        #self.shortlist.setMaximumHeight(300)
         
+        self.filelist.setMinimumSize(600,300)
         self.filelist.my_filepath = ""
 
 
@@ -92,8 +95,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def select_from_filelist(self,signal):
         print('select -start')
         item = self.filelist.currentItem()
-        self.filelist.my_filepath = item.text(0)
+        fullpath = item.text(0)
+        self.filelist.my_filepath = os.path.dirname(os.path.abspath(fullpath))
         print(self.filelist.my_filepath)
+        subprocess.Popen('explorer ' +self.filelist.my_filepath)
         print('select -end')        
         
         
@@ -244,7 +249,7 @@ def main():
         app = QApplication.instance()      
     ui = MainWindow()
     #-----------------------------------
-    print (my_messages(0))       
+     
     
     ui.show()
     sys.exit(app.exec_())    

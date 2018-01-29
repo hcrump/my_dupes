@@ -22,6 +22,22 @@
       </item>
       <item>
        <layout class="QVBoxLayout" name="verticalLayout_2">
+        <property name="sizeConstraint">
+         <enum>QLayout::SetDefaultConstraint</enum>
+        </property>
+        <item>
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
         <item>
          <widget class="QPushButton" name="btn1">
           <property name="text">
@@ -57,9 +73,9 @@
          </widget>
         </item>
         <item>
-         <widget class="QRadioButton" name="radiobysize">
+         <widget class="QRadioButton" name="radiobyname">
           <property name="text">
-           <string>By Size</string>
+           <string>By Name</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -67,9 +83,12 @@
          </widget>
         </item>
         <item>
-         <widget class="QRadioButton" name="radiobyname">
+         <widget class="QRadioButton" name="radiobysize">
           <property name="text">
-           <string>By Name</string>
+           <string>By Size</string>
+          </property>
+          <property name="checked">
+           <bool>false</bool>
           </property>
          </widget>
         </item>
@@ -86,7 +105,11 @@
        </layout>
       </item>
       <item>
-       <widget class="QListWidget" name="shortlist"/>
+       <widget class="QListWidget" name="shortlist">
+        <property name="autoFillBackground">
+         <bool>false</bool>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
@@ -103,6 +126,9 @@
       </property>
       <property name="alternatingRowColors">
        <bool>true</bool>
+      </property>
+      <property name="indentation">
+       <number>20</number>
       </property>
       <property name="sortingEnabled">
        <bool>true</bool>
