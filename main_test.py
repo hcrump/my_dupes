@@ -1,6 +1,8 @@
-import os
+import os.path
 import hashlib
 import subprocess
+import sys
+import re
 from PyQt5.QtWidgets import (QApplication,  QMainWindow, QFileSystemModel,
                              QTreeView,QListView,QTreeWidgetItem,QMessageBox)
 from PyQt5 import QtGui
@@ -45,20 +47,74 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn1.clicked.connect(self.add_to_shortlist)
         self.btn2.clicked.connect(self.delete_from_shortlist)
         self.btn3.clicked.connect(self.start_scan)
-        self.shortlist.itemClicked.connect(self.get_selection_index)     
+        self.shortlist.itemClicked.connect(self.get_selection_index)   
         
-
-
+        #menu bar        
+        self.actionAbout.setShortcut("Ctrl+Alt+A")
+        self.actionAbout.setStatusTip("How about that!")
+        self.actionAbout.triggered.connect(self.msg_about)
+        self.actionGo_Away.setStatusTip("Don't push this button!")
+        self.actionGo_Away.triggered.connect(self.close)
+        self.actionDON_T_DO_IT.setStatusTip("Seriously? You know what's about to happen.")
+        self.actionDON_T_DO_IT.triggered.connect(self.close)
+        
+        
+    def msg_about(self):
+        print('About')
+        title = 'About Hdogs Duplicate File Finder'
+        message = ("---------------------------------------------------\n"
+                   "Hdogs Duplicate File Finder v1.0\n"
+                   "\n"
+                   "By: Horace Crump\n"
+                   "V1.0 1/29/18\n"
+                   "\n"
+                   "Tools:\nPyQt5\nQT Designer v5.6.2\nPython v3.6\nSpyder v3.2.6\n"
+                   "\n"
+                   "Why?\n"
+                   "Mainly wanted to learn python. But, I had a ton of duplicate\n"
+                   "files from making backups over the years and I was moving.\n"
+                   "I decided that I wanted to find and consolidate all of those\n"
+                   "files. Sounded like a fun project.\n"
+                   "\n"
+                   "-cheers!\n"
+                   "---------------------------------------------------")
+        QMessageBox.about(self,title, message)
+        x=self.get_pattern()
+        
+    def get_pattern(self):
+        '''Gets search pattern from user search bar, creates regex list'''
+        print('get_pattern')
+        temp= []
+        search_list = []
+        temp = self.searchbar.text().split()
+        #[search_list.append(x) for x in temp if x not in search_list]        
+        for x in temp:
+            if x not in search_list:
+                if x.startswith('*'): #remove leading asterix, which break it
+                    x = re.sub('(^[\*]+)',r'\\*',x)
+                    print ('x:',x)
+                if x.startswith('.'):
+                    x = re.sub(r'(^[.]+)',r'\\.',x)
+                    print('xx:',x)
+                
+                search_list.append(x)
+                
+        print(search_list)
+        combined = '(' + ')|('.join(search_list) + ')'
+        print('comb:',combined)
+        return combined
+        
     def start_scan(self):
         '''gets paths from shortlist and scans them all'''
         print('start_scan -start')
         big_list = set([])
         my_dict = {}
         size = 0
+        self.filelist.clear()
         if self.shortlist.count() > 0:        
             for i in range(self.shortlist.count()):
                 next_dir = self.shortlist.item(i).text()
-                big_list.update(get_all_files(next_dir))
+                big_list.update(get_all_files(next_dir,self.get_pattern()))
                 print('...scanning',next_dir)
                 size = len(big_list)
                 print(size,'files to scan')
@@ -147,17 +203,16 @@ def is_dir(path):
         return True
     
     
-def get_all_files(home):
-    '''compares files'''   
-    npath = home
-    file_list = set()
-    
-    print('Get_all_files -start')
-    
+def get_all_files(rootdirs,combined):
+    '''compares files'''
+    print('Get_all_files -start')   
+    npath=rootdirs
+    file_list = set()     
     for dirs,_,files in os.walk(npath):
-        npath = os.path.join(npath,dirs)
         for name in files:
-            file_list.add(os.path.join(npath,name))
+            full_name = os.path.join(dirs,name)
+            if re.search(combined, full_name, re.IGNORECASE):
+                file_list.add(full_name)
     print('Get_all_files -end')
     return file_list        
  
@@ -241,7 +296,6 @@ def fill_widget(widget, value):
  
 
 def main():
-    import sys
     #this is needed for Spyder IDE
     if not QApplication.instance():
         app = QApplication(sys.argv)
