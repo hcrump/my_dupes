@@ -48,7 +48,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn2.clicked.connect(self.delete_from_shortlist)
         self.btn3.clicked.connect(self.start_scan)
         self.shortlist.itemClicked.connect(self.get_selection_index)   
-        
+        self.searchbar.returnPressed.connect(self.start_scan)
         #menu bar        
         self.actionAbout.setShortcut("Ctrl+Alt+A")
         self.actionAbout.setStatusTip("How about that!")
@@ -58,7 +58,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionDON_T_DO_IT.setStatusTip("Seriously? You know what's about to happen.")
         self.actionDON_T_DO_IT.triggered.connect(self.close)
         
+        #colors
+        palette = QtGui.QPalette()
+        #palette.setColor(self.backgroundRole(), QtGui.QColor("#99ccff"))
+        palette.setColor(self.backgroundRole(), QtGui.QColor("#74b9ff"))
+        self.setPalette(palette)
+        #self.searchbar.setPalette(palette)               
+        self.searchbar.setStyleSheet('background-color: #dfe6e9;color: red;')      
+        self.filetree.setStyleSheet('background-color: #dfe6e9')
+        self.filelist.setStyleSheet('background-color: #dfe6e9')
+        self.shortlist.setStyleSheet('background-color: #dfe6e9')
+        #self.filelist.headerItem().setBackground(0, QtGui.QColor(234, 236, 238))
+        self.menubar.setStyleSheet('background-color:#dfe6e9')
         
+            
+            
+            
     def msg_about(self):
         print('About')
         title = 'About Hdogs Duplicate File Finder'
