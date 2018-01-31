@@ -34,13 +34,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         #setup shortlist
         self.shortlist.setWindowTitle('Selected Paths')
-        self.shortlist.setMinimumSize(300,300)
+        #self.shortlist.setMinimumSize(200,100)
         #self.shortlist.setMaximumHeight(300)
         
+        #setup filelist
         self.filelist.setMinimumSize(600,300)
         self.filelist.my_filepath = ""
-
-
+        #setup my_console
+        self.my_console.appendPlainText('Console Started...')
+        
+        
         #setup signals
         self.filetree.doubleClicked.connect(self.select_from_filetree)
         self.filelist.doubleClicked.connect(self.select_from_filelist)
@@ -49,6 +52,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn3.clicked.connect(self.start_scan)
         self.shortlist.itemClicked.connect(self.get_selection_index)   
         self.searchbar.returnPressed.connect(self.start_scan)
+        #checkbox_single
+        self.checkbox_single.stateChanged.connect(self.box_changed)
+    
+        
+        
         #menu bar        
         self.actionAbout.setShortcut("Ctrl+Alt+A")
         self.actionAbout.setStatusTip("How about that!")
@@ -70,10 +78,24 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.shortlist.setStyleSheet('background-color: #dfe6e9')
         #self.filelist.headerItem().setBackground(0, QtGui.QColor(234, 236, 238))
         self.menubar.setStyleSheet('background-color:#dfe6e9')
+        self.my_console.setStyleSheet('background-color:#dfe6e9')
+            
+    def box_changed(self):
+        if self.checkbox_single.isChecked():
+            self.my_print('checkbox is checked.')
+            
+        else:
+            self.my_print('checkbox is unchecked.')
+            
+            
+    def get_checkbox_status(self):
+        return self.checkbox_single.isChecked()
+            
+            
+    def my_print(self, msg):
+        '''Prints to both stdout and self.my_console'''
+        self.my_console.appendPlainText(str(msg))
         
-            
-            
-            
     def msg_about(self):
         print('About')
         title = 'About Hdogs Duplicate File Finder'
@@ -94,7 +116,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                    "-cheers!\n"
                    "---------------------------------------------------")
         QMessageBox.about(self,title, message)
-        x=self.get_pattern()
+       
         
     def get_pattern(self):
         '''Gets search pattern from user search bar, creates regex list'''
@@ -149,12 +171,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 else:
                     my_dict = compare_by_hash(big_list)
             else:
-                print('Nothing checked, bugged')
-            #by_hash = compare_by_hash(big_list)
-            fill_widget(self.filelist, get_dupes(my_dict))
-            #fill_widget(self.filelist,by_size)
-        print('start_scan -end')
-        
+                self.my_print('Nothing checked, bugged?')
+            final_dict = get_dupes(my_dict,self.get_checkbox_status())
+            fill_widget(self.filelist,final_dict)
+            self.my_print(str(len(final_dict))+' keys out of '+str(len(big_list))+
+                          ' files matched!')
+         
             
     def select_from_filetree(self,signal):
         print('select -start')
@@ -181,8 +203,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             set1.update([str(self.shortlist.item(i).text()) for i in range(self.shortlist.count())] )
             set1.add(self.filetree.my_filepath)         
             self.shortlist.clear()
-            self.shortlist.addItems(set1)           
-       
+            self.shortlist.addItems(set1)                 
         print(set1)
         print('add_to_shortlist - end')
     
@@ -197,10 +218,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def delete_from_shortlist(self):
         '''remove selected entries from shortlist'''
         print ('delete_from_shortlist -start')
-        #indexes = self.shortlist.selectionModel().selectedRows()
-        #indexes = self.shortlist.selectedIndexes()
-        #for i in sorted(indexes):
-            #print (i.data)
         lst = [item.text() for item in self.shortlist.selectedItems()]
         print (lst)
         if len(lst) > 0:
@@ -208,8 +225,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 lst.remove(i)   
             self.shortlist.clear()
             self.shortlist.addItems(lst)
-        print (lst)        
-        print ('delete_from_shortlist -end')
 
 
 def is_dir(path):
@@ -228,7 +243,6 @@ def get_all_files(rootdirs,combined):
             full_name = os.path.join(dirs,name)
             if re.search(combined, full_name, re.IGNORECASE):
                 file_list.add(full_name)
-    print('Get_all_files -end')
     return file_list        
  
 
@@ -271,11 +285,19 @@ def get_hash_md5(filename):
     return myhash.hexdigest()
 
 
-def get_dupes(adict):
-    '''Get only duplicates'''
+def get_dupes(adict,checkbox_status = False):
+    '''
+    Only keep entries that have more than one value entry
+    The point is to find dupes unless checkbox is set, then
+    i'm just listing every file with or without a pattern match
+    '''
     print("Get Duplicates")
-    d1 = {}
-    d1 = {k:v for k,v in adict.items() if len(v) > 1}
+    d1 = {}    
+    if checkbox_status:
+        match_count = 0 #don't worry about dupes, keep em all
+    else:
+        match_count = 1 #only if >1 duplicate values
+    d1 = {k:v for k,v in adict.items() if len(v) > match_count}
     return d1
 
 def fill_item(item, value):
