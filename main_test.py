@@ -218,13 +218,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def delete_from_shortlist(self):
         '''remove selected entries from shortlist'''
         print ('delete_from_shortlist -start')
+        full_lst = [str(self.shortlist.item(i).text()) for i in range(self.shortlist.count())]
         lst = [item.text() for item in self.shortlist.selectedItems()]
-        print (lst)
         if len(lst) > 0:
             for i in list(lst):
-                lst.remove(i)   
+                full_lst.remove(i)
             self.shortlist.clear()
-            self.shortlist.addItems(lst)
+            self.shortlist.addItems(full_lst)
 
 
 def is_dir(path):
