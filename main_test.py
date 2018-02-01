@@ -31,19 +31,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.filetree.setColumnWidth(1,75)
         self.filetree.setColumnWidth(2,50)
         self.filetree.my_filepath = 'C:/Users/horace/Desktop'
+        self.model.directoryLoaded.connect(self.expand_initial_dir)
         
         #setup shortlist
         self.shortlist.setWindowTitle('Selected Paths')
-        #self.shortlist.setMinimumSize(200,100)
-        #self.shortlist.setMaximumHeight(300)
         
         #setup filelist
         self.filelist.setMinimumSize(600,300)
         self.filelist.my_filepath = ""
+        
         #setup my_console
         self.my_console.appendPlainText('Console Started...')
-        
-        
+               
         #setup signals
         self.filetree.doubleClicked.connect(self.select_from_filetree)
         self.filelist.doubleClicked.connect(self.select_from_filelist)
@@ -53,8 +52,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.shortlist.itemClicked.connect(self.get_selection_index)   
         self.searchbar.returnPressed.connect(self.start_scan)
         #checkbox_single
-        self.checkbox_single.stateChanged.connect(self.box_changed)
-    
+
+        #self.checkbox_single.stateChanged.connect(self.box_changed)
+        #spinbox
+        #self.spinBox.valueChanged.connect(self.spin_changed)
         
         
         #menu bar        
@@ -79,7 +80,52 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #self.filelist.headerItem().setBackground(0, QtGui.QColor(234, 236, 238))
         self.menubar.setStyleSheet('background-color:#dfe6e9')
         self.my_console.setStyleSheet('background-color:#dfe6e9')
-            
+    
+        #setup ToolTips
+        self.checkbox_single.setToolTip(
+                'Changes behavior. Use this to find only files that are\n'
+                'only in one directory tree, but not another. Only works\n'
+                'with 2 directory trees. Otherwise it gives error msg.')
+        self.searchbar.setToolTip(
+                'You can filter the search by any string.\n\n'
+                '    example: "desktop" will display only paths that have\n'
+                '              the string "desktop" anywhere in it.\n\n'
+                'You can filter by extension as well\n'
+                '     example: ".jpg" will display only files with ".jpg" extension\n\n'
+                'Multiple strings are treated as an "OR" search')    
+        self.shortlist.setToolTip(
+                'To add search directories, double click any folder from the left\n'
+                'directory tree, then hit the Select button\n\n'
+                'To remove paths from the right search window, select the path and\n'
+                'click the Delete button')
+        self.btn3.setToolTip(
+                'Hit this button to start a scan. You can also just hit <enter>\n'
+                'from the search pattern bar to the right')
+        self.spinBox.setToolTip(
+                'Set the minimum number of duplicate files to be displayed\n\n'
+                '    Example: \n'
+                '            1 would display all files.\n'
+                '            2 would display all files that have at least 2 or more\n'
+                '            duplicates.')
+        self.filelist.setToolTip(
+                'Double Click on any full filepath to open that files folder location\n')
+                
+        
+        
+    def expand_initial_dir(self, root_dir):
+        '''expands each dir from top to end, can't do all at once'''
+        self.my_print('Expanding ' + root_dir)
+        path = os.path.normpath(self.filetree.my_filepath)
+        path = path.split(os.sep)
+        part = ""
+        for i in path:
+            part = part + i + os.sep
+            self.filetree.expand(self.model.index(part))
+
+      
+    def spin_changed(self):
+        self.my_print(self.spinBox.cleanText())
+        
     def box_changed(self):
         if self.checkbox_single.isChecked():
             self.my_print('checkbox is checked.')
@@ -148,10 +194,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         my_dict = {}
         size = 0
         self.filelist.clear()
-        if self.shortlist.count() > 0:        
+        if self.shortlist.count() > 0: 
+            new_pattern = self.get_pattern()
             for i in range(self.shortlist.count()):
                 next_dir = self.shortlist.item(i).text()
-                big_list.update(get_all_files(next_dir,self.get_pattern()))
+                big_list.update(get_all_files(next_dir,new_pattern))
                 print('...scanning',next_dir)
                 size = len(big_list)
                 print(size,'files to scan')
@@ -164,7 +211,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             elif self.radiobyhash.isChecked():
                 print ('hash is checked')
                 if size > 1000:
-                    msg = ("Over "+str(size)+" files not allowed with hash"
+                    msg = ("Over " + str(size) + " files not allowed with hash"
                         " method, try smaller folders")
                     QMessageBox.about(self, "Sorry",msg)                       
                     print('Hash intensive, try smaller folder size')
@@ -172,8 +219,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     my_dict = compare_by_hash(big_list)
             else:
                 self.my_print('Nothing checked, bugged?')
-            final_dict = get_dupes(my_dict,self.get_checkbox_status())
-            fill_widget(self.filelist,final_dict)
+            duplicate_min = self.spinBox.cleanText()
+            self.my_print('-'*60)
+            self.my_print('Minimum duplicate size: '+ duplicate_min)
+            self.my_print('Pattern filter: ' + new_pattern)
+            final_dict = get_dupes(my_dict, duplicate_min)
+            fill_widget(self.filelist, final_dict)
             self.my_print(str(len(final_dict))+' keys out of '+str(len(big_list))+
                           ' files matched!')
          
@@ -285,7 +336,7 @@ def get_hash_md5(filename):
     return myhash.hexdigest()
 
 
-def get_dupes(adict,checkbox_status = False):
+def get_dupes(adict, min_duplicates):
     '''
     Only keep entries that have more than one value entry
     The point is to find dupes unless checkbox is set, then
@@ -293,11 +344,9 @@ def get_dupes(adict,checkbox_status = False):
     '''
     print("Get Duplicates")
     d1 = {}    
-    if checkbox_status:
-        match_count = 0 #don't worry about dupes, keep em all
-    else:
-        match_count = 1 #only if >1 duplicate values
-    d1 = {k:v for k,v in adict.items() if len(v) > match_count}
+    min_duplicates = int(min_duplicates)
+    #only print keys with > values
+    d1 = {k:v for k,v in adict.items() if len(v) >= min_duplicates}
     return d1
 
 def fill_item(item, value):
