@@ -51,10 +51,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn3.clicked.connect(self.start_scan)
         self.shortlist.itemClicked.connect(self.get_selection_index)   
         self.searchbar.returnPressed.connect(self.start_scan)
-        #checkbox_single
-
-        #self.checkbox_single.stateChanged.connect(self.box_changed)
-        #spinbox
+        
+        #setup checkbox_exact
+        #self.checkbox_exact.stateChanged.connect(self.box_changed)
+        
+        #setup spinbox
         #self.spinBox.valueChanged.connect(self.spin_changed)
         
         
@@ -82,10 +83,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.my_console.setStyleSheet('background-color:#dfe6e9')
     
         #setup ToolTips
-        self.checkbox_single.setToolTip(
-                'Changes behavior. Use this to find only files that are\n'
-                'only in one directory tree, but not another. Only works\n'
-                'with 2 directory trees. Otherwise it gives error msg.')
+        self.checkbox_exact.setToolTip(
+                'Change match to be an exact match instead of >= match.\n')
         self.searchbar.setToolTip(
                 'You can filter the search by any string.\n\n'
                 '    example: "desktop" will display only paths that have\n'
@@ -125,9 +124,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
       
     def spin_changed(self):
         self.my_print(self.spinBox.cleanText())
+
         
     def box_changed(self):
-        if self.checkbox_single.isChecked():
+        if self.checkbox_exact.isChecked():
             self.my_print('checkbox is checked.')
             
         else:
@@ -135,12 +135,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             
             
     def get_checkbox_status(self):
-        return self.checkbox_single.isChecked()
+        return self.checkbox_exact.isChecked()
             
             
     def my_print(self, msg):
         '''Prints to both stdout and self.my_console'''
         self.my_console.appendPlainText(str(msg))
+
         
     def msg_about(self):
         print('About')
@@ -195,6 +196,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         size = 0
         self.filelist.clear()
         if self.shortlist.count() > 0: 
+            exact = self.checkbox_exact.isChecked()
             new_pattern = self.get_pattern()
             for i in range(self.shortlist.count()):
                 next_dir = self.shortlist.item(i).text()
@@ -223,10 +225,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.my_print('-'*60)
             self.my_print('Minimum duplicate size: '+ duplicate_min)
             self.my_print('Pattern filter: ' + new_pattern)
-            final_dict = get_dupes(my_dict, duplicate_min)
+            final_dict = get_dupes(my_dict, duplicate_min,exact)
             fill_widget(self.filelist, final_dict)
-            self.my_print(str(len(final_dict))+' keys out of '+str(len(big_list))+
-                          ' files matched!')
+            key_count = len(final_dict)
+            val_count = sum(len(v) for v in final_dict.values())
+            self.my_print(str(key_count) +' keys, ' + str(val_count) +' values, '+ str(size) +
+                          ' total files matched!')
          
             
     def select_from_filetree(self,signal):
@@ -336,7 +340,7 @@ def get_hash_md5(filename):
     return myhash.hexdigest()
 
 
-def get_dupes(adict, min_duplicates):
+def get_dupes(adict, min_duplicates,exact):
     '''
     Only keep entries that have more than one value entry
     The point is to find dupes unless checkbox is set, then
@@ -345,8 +349,11 @@ def get_dupes(adict, min_duplicates):
     print("Get Duplicates")
     d1 = {}    
     min_duplicates = int(min_duplicates)
-    #only print keys with > values
-    d1 = {k:v for k,v in adict.items() if len(v) >= min_duplicates}
+    if not exact:
+        #only print keys with > values
+        d1 = {k:v for k,v in adict.items() if len(v) >= min_duplicates}
+    else:
+        d1 = {k:v for k,v in adict.items() if len(v) == min_duplicates}
     return d1
 
 def fill_item(item, value):

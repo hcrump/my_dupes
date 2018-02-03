@@ -170,9 +170,9 @@
            </widget>
           </item>
           <item>
-           <widget class="QCheckBox" name="checkbox_single">
+           <widget class="QCheckBox" name="checkbox_exact">
             <property name="text">
-             <string>Find unique/exclusive files</string>
+             <string>Find exact</string>
             </property>
            </widget>
           </item>
