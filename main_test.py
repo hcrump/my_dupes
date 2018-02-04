@@ -18,6 +18,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
     def initUI(self):
         self.setWindowTitle(self.title)
+        self.full_file_list = set()
            
         #setup filetree
         self.model = QFileSystemModel()
@@ -35,20 +36,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         #setup shortlist
         self.shortlist.setWindowTitle('Selected Paths')
-        
+        #self.shortlist.setMinimumSize(400,300)
         #setup filelist
-        self.filelist.setMinimumSize(600,300)
+        self.filelist.setMinimumSize(600,400)
         self.filelist.my_filepath = ""
         
         #setup my_console
         self.my_console.appendPlainText('Console Started...')
+        self.my_console.setMinimumSize(400,100)
                
         #setup signals
-        self.filetree.doubleClicked.connect(self.select_from_filetree)
+        #self.filetree.doubleClicked.connect(self.select_from_filetree)
+        self.filetree.clicked.connect(self.select_from_filetree)
         self.filelist.doubleClicked.connect(self.select_from_filelist)
         self.btn1.clicked.connect(self.add_to_shortlist)
         self.btn2.clicked.connect(self.delete_from_shortlist)
-        self.btn3.clicked.connect(self.start_scan)
+        self.btn3.clicked.connect(self.load_files)
+        self.btn4.clicked.connect(self.start_scan)
         self.shortlist.itemClicked.connect(self.get_selection_index)   
         self.searchbar.returnPressed.connect(self.start_scan)
         
@@ -63,8 +67,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.actionAbout.setShortcut("Ctrl+Alt+A")
         self.actionAbout.setStatusTip("How about that!")
         self.actionAbout.triggered.connect(self.msg_about)
-        self.actionGo_Away.setStatusTip("Don't push this button!")
-        self.actionGo_Away.triggered.connect(self.close)
+        self.actionGuide.setStatusTip("Basic operating steps.")
+        self.actionGuide.triggered.connect(self.msg_Guide)
         self.actionDON_T_DO_IT.setStatusTip("Seriously? You know what's about to happen.")
         self.actionDON_T_DO_IT.triggered.connect(self.close)
         
@@ -91,15 +95,22 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 '              the string "desktop" anywhere in it.\n\n'
                 'You can filter by extension as well\n'
                 '     example: ".jpg" will display only files with ".jpg" extension\n\n'
-                'Multiple strings are treated as an "OR" search')    
+                'Multiple strings are treated as an "OR" search\n\n\n'
+                'NOTE:\n\n\n'
+                'You can limit the Loaded files by starting with a search string')    
         self.shortlist.setToolTip(
-                'To add search directories, double click any folder from the left\n'
+                'To add search directories, just click any folder from the left\n'
                 'directory tree, then hit the Select button\n\n'
                 'To remove paths from the right search window, select the path and\n'
                 'click the Delete button')
         self.btn3.setToolTip(
-                'Hit this button to start a scan. You can also just hit <enter>\n'
-                'from the search pattern bar to the right')
+                'Loads all directories and files that you have listed. You only need\n'
+                'to do this once after changing directories to search. Use again after\n'
+                'adding or subtracting directories. The Rescan button should be used for\n'
+                'any updates to filters or search keywords as it saves time.')
+        self.btn4.setToolTip(
+                'Rescan all files with any filter changes. <enter> in search bar\n'
+                'does the same thing.')
         self.spinBox.setToolTip(
                 'Set the minimum number of duplicate files to be displayed\n\n'
                 '    Example: \n'
@@ -107,7 +118,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 '            2 would display all files that have at least 2 or more\n'
                 '            duplicates.')
         self.filelist.setToolTip(
-                'Double Click on any full filepath to open that files folder location\n')
+                'Click on any full filepath to open that files folder location\n')
                 
         
         
@@ -164,7 +175,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                    "---------------------------------------------------")
         QMessageBox.about(self,title, message)
        
-        
+    def msg_Guide(self):
+        print('Guide')
+        title = 'Simple Guide'
+        message = (str('-'*80)+'\n'
+                   'Simple Instructions...\n\n'
+                   '1. Click folders from directory listing to select.\n'
+                   '2. Click the <Select> button to add path.\n'
+                   '   ...continue adding paths until complete.\n'
+                   '3. Click the <Load> button to add all files.\n'
+                   '4. Click the <Scan> button to diplay file listing.\n\n'
+                   'Options affect scan only\n'
+                   'Search strings can affect both load and scan.')
+        QMessageBox.about(self,title,message)
     def get_pattern(self):
         '''Gets search pattern from user search bar, creates regex list'''
         print('get_pattern')
@@ -187,7 +210,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         combined = '(' + ')|('.join(search_list) + ')'
         print('comb:',combined)
         return combined
-        
+    
+    
+    def load_files(self):
+        '''Loads all selected files from selected directories'''
+        print('load_files -start')
+        self.full_file_list = set()
+        if self.shortlist.count() > 0:
+            for i in range(self.shortlist.count()):
+                directory = self.shortlist.item(i).text()
+                self.full_file_list.update(get_all_files(directory,self.get_pattern()))
+        self.my_print('Loaded ' + str(len(self.full_file_list)) + ' files.')
+        if len(self.full_file_list) < 10:
+            print(self.full_file_list)
+ 
     def start_scan(self):
         '''gets paths from shortlist and scans them all'''
         print('start_scan -start')
@@ -195,15 +231,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         my_dict = {}
         size = 0
         self.filelist.clear()
-        if self.shortlist.count() > 0: 
+        if len(self.full_file_list) > 0: 
             exact = self.checkbox_exact.isChecked()
             new_pattern = self.get_pattern()
-            for i in range(self.shortlist.count()):
-                next_dir = self.shortlist.item(i).text()
-                big_list.update(get_all_files(next_dir,new_pattern))
-                print('...scanning',next_dir)
-                size = len(big_list)
-                print(size,'files to scan')
+            big_list = filtered_data(self.full_file_list,new_pattern)
+            size = len(big_list)
+            print(size,'files to scan')
             if self.radiobyname.isChecked():
                 print ('byname is checked')
                 my_dict = compare_by_name(big_list)
@@ -231,7 +264,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             val_count = sum(len(v) for v in final_dict.values())
             self.my_print(str(key_count) +' keys, ' + str(val_count) +' values, '+ str(size) +
                           ' total files matched!')
-         
+        else:
+            self.my_print('No Data, Please <Load> directories above.')
             
     def select_from_filetree(self,signal):
         print('select -start')
@@ -287,8 +321,16 @@ def is_dir(path):
     if os.path.isdir(path):
         return True
     
+def filtered_data(full_list, filter_strings):
+    '''filters existing self.full_list data'''
+    print('filtered_data -start')
+    file_list = set()
+    for file_path_entry in full_list:
+        if re.search(filter_strings, file_path_entry,re.IGNORECASE):
+            file_list.add(file_path_entry)   
+    return file_list
     
-def get_all_files(rootdirs,combined):
+def get_all_files(rootdirs,filter_strings):
     '''compares files'''
     print('Get_all_files -start')   
     npath=rootdirs
@@ -296,7 +338,7 @@ def get_all_files(rootdirs,combined):
     for dirs,_,files in os.walk(npath):
         for name in files:
             full_name = os.path.join(dirs,name)
-            if re.search(combined, full_name, re.IGNORECASE):
+            if re.search(filter_strings, full_name, re.IGNORECASE):
                 file_list.add(full_name)
     return file_list        
  
@@ -356,6 +398,7 @@ def get_dupes(adict, min_duplicates,exact):
         d1 = {k:v for k,v in adict.items() if len(v) == min_duplicates}
     return d1
 
+
 def fill_item(item, value):
   item.setExpanded(True)
   if type(value) is dict:
@@ -381,6 +424,7 @@ def fill_item(item, value):
     child = QTreeWidgetItem()
     child.setText(0, str(value))
     item.addChild(child)
+
 
 def fill_widget(widget, value):
   widget.clear()

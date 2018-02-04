@@ -89,6 +89,13 @@
           <item>
            <widget class="QPushButton" name="btn3">
             <property name="text">
+             <string>Load</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn4">
+            <property name="text">
              <string>Scan</string>
             </property>
            </widget>
@@ -684,7 +691,7 @@
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionGo_Away"/>
+    <addaction name="actionGuide"/>
     <addaction name="actionAbout"/>
    </widget>
    <addaction name="menuMenu"/>
@@ -696,9 +703,9 @@
     <string>DON&quot;T DO IT!!!</string>
    </property>
   </action>
-  <action name="actionGo_Away">
+  <action name="actionGuide">
    <property name="text">
-    <string>Go Away!</string>
+    <string>Simple Instructions</string>
    </property>
   </action>
   <action name="actionAbout">
