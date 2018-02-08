@@ -102,12 +102,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 'NOTE:\n\n\n'
                 'You can limit the Loaded files by starting with a search string')
         self.excludebar.setToolTip(
-                'Any path that matches will be excluded')
+                'Multiple filters allowed. Will exclude any matched path from output.'
+                'Separate by spaces')
         self.shortlist.setToolTip(
                 'To add search directories, just click any folder from the left\n'
                 'directory tree, then hit the Select button\n\n'
                 'To remove paths from the right search window, select the path and\n'
-                'click the Delete button')
+                'click the Delete button. Or use the Delete all button')
         self.btn1.setToolTip(
                 'Select a directory from the left and <click> to add search path.')
         self.btn2.setToolTip(
@@ -462,7 +463,7 @@ def fill_widget(widget, value):
  
 
 def main():
-    #this is needed for Spyder IDE
+    #this part is needed for Spyder IDE since it was made with qt
     if not QApplication.instance():
         app = QApplication(sys.argv)
     else:
