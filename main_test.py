@@ -53,8 +53,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn2.clicked.connect(self.delete_from_shortlist)
         self.btn3.clicked.connect(self.load_files)
         self.btn4.clicked.connect(self.start_scan)
+        self.btn_removeall.clicked.connect(self.clear_shortlist)
         self.shortlist.itemClicked.connect(self.get_selection_index)   
         self.searchbar.returnPressed.connect(self.start_scan)
+        self.excludebar.returnPressed.connect(self.start_scan)
         
         #setup checkbox_exact
         #self.checkbox_exact.stateChanged.connect(self.box_changed)
@@ -78,7 +80,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         palette.setColor(self.backgroundRole(), QtGui.QColor("#74b9ff"))
         self.setPalette(palette)
         #self.searchbar.setPalette(palette)               
-        self.searchbar.setStyleSheet('background-color: #dfe6e9;color: red;')      
+        self.searchbar.setStyleSheet('background-color: #dfe6e9;color: red;')
+        self.excludebar.setStyleSheet('background-color: #dfe6e9;color: red;')
         self.filetree.setStyleSheet('background-color: #dfe6e9')
         self.filelist.setStyleSheet('background-color: #dfe6e9')
         self.shortlist.setStyleSheet('background-color: #dfe6e9')
@@ -97,12 +100,20 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 '     example: ".jpg" will display only files with ".jpg" extension\n\n'
                 'Multiple strings are treated as an "OR" search\n\n\n'
                 'NOTE:\n\n\n'
-                'You can limit the Loaded files by starting with a search string')    
+                'You can limit the Loaded files by starting with a search string')
+        self.excludebar.setToolTip(
+                'Any path that matches will be excluded')
         self.shortlist.setToolTip(
                 'To add search directories, just click any folder from the left\n'
                 'directory tree, then hit the Select button\n\n'
                 'To remove paths from the right search window, select the path and\n'
                 'click the Delete button')
+        self.btn1.setToolTip(
+                'Select a directory from the left and <click> to add search path.')
+        self.btn2.setToolTip(
+                '<click> to delete the selected search path')
+        self.btn_removeall.setToolTip(
+                '<click> to delete all search paths.')
         self.btn3.setToolTip(
                 'Loads all directories and files that you have listed. You only need\n'
                 'to do this once after changing directories to search. Use again after\n'
@@ -192,8 +203,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         '''Gets search pattern from user search bar, creates regex list'''
         print('get_pattern')
         temp= []
+        temp1 = ""
         search_list = []
+        exclude_list = []
         temp = self.searchbar.text().split()
+        temp1 = self.excludebar.text().split()
         #[search_list.append(x) for x in temp if x not in search_list]        
         for x in temp:
             if x not in search_list:
@@ -202,12 +216,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     print ('x:',x)
                 if x.startswith('.'):
                     x = re.sub(r'(^[.]+)',r'\\.',x)
-                    print('xx:',x)
-                
-                search_list.append(x)
-                
-        print(search_list)
-        combined = '(' + ')|('.join(search_list) + ')'
+                    print('xx:',x)               
+                search_list.append(x)               
+
+        
+        for x in temp1:
+            if x not in exclude_list:
+                exclude_list.append(x)
+        print('include:',search_list)
+        print('exclude:',exclude_list)
+        if len(exclude_list) > 0:
+            part1 = '^(?=.*(?:' + '|'.join(search_list) + '))' 
+            part2 = '(?!.*(?:' + '|'.join(exclude_list) + ')).*$'
+            combined = part1 + part2
+        else:
+            combined = '(' + ')|('.join(search_list) + ')'
         print('comb:',combined)
         return combined
     
@@ -316,6 +339,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.shortlist.addItems(full_lst)
 
 
+    def clear_shortlist(self):
+        '''Empties all entries from shortlist'''
+        print('clear_shortlist -start')
+        self.shortlist.clear()
+
 def is_dir(path):
     '''verify if path is a directory or file '''
     if os.path.isdir(path):
@@ -327,6 +355,7 @@ def filtered_data(full_list, filter_strings):
     file_list = set()
     for file_path_entry in full_list:
         if re.search(filter_strings, file_path_entry,re.IGNORECASE):
+        #if re.search('^(?=.*(jpg|png))(?!.*(lua|camera)).*$', file_path_entry,re.IGNORECASE):
             file_list.add(file_path_entry)   
     return file_list
     

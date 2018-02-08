@@ -69,7 +69,14 @@
           <item>
            <widget class="QPushButton" name="btn2">
             <property name="text">
-             <string>Delete</string>
+             <string>Remove</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_removeall">
+            <property name="text">
+             <string>Remove all</string>
             </property>
            </widget>
           </item>
@@ -161,27 +168,34 @@
            </widget>
           </item>
           <item>
-           <widget class="QSpinBox" name="spinBox">
-            <property name="maximumSize">
-             <size>
-              <width>35</width>
-              <height>16777215</height>
-             </size>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <property name="bottomMargin">
+             <number>0</number>
             </property>
-            <property name="minimum">
-             <number>1</number>
-            </property>
-            <property name="maximum">
-             <number>9</number>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QCheckBox" name="checkbox_exact">
-            <property name="text">
-             <string>Find exact</string>
-            </property>
-           </widget>
+            <item>
+             <widget class="QSpinBox" name="spinBox">
+              <property name="maximumSize">
+               <size>
+                <width>35</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>9</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="checkbox_exact">
+              <property name="text">
+               <string>Find exact</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
           <item>
            <widget class="QLabel" name="label">
@@ -617,6 +631,16 @@
              <bool>true</bool>
             </property>
            </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="text">
+             <string>Exclude Pattern</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="excludebar"/>
           </item>
          </layout>
         </item>
