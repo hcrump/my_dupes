@@ -31,7 +31,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.filetree.setColumnWidth(0,350)
         self.filetree.setColumnWidth(1,75)
         self.filetree.setColumnWidth(2,50)
-        self.filetree.my_filepath = 'C:/Users/horace/Desktop'
+        self.filetree.my_filepath = 'C:/Users/horace/Desktop/blah/'
         self.model.directoryLoaded.connect(self.expand_initial_dir)
         
         #setup shortlist
@@ -100,6 +100,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 '     example: ".jpg" will display only files with ".jpg" extension\n\n'
                 'Multiple strings are treated as an "OR" search\n\n\n'
                 'NOTE:\n\n\n'
+                'Filtering occurs before duplicate checking!!\n'
+                'If you filter something that would normally be a duplicate\n'
+                'The program may see the other unfiltered path as a single non\n'
+                'duplicate. Drill down selected search paths to minimize this\n'
+                'by being closer to the files and do not use a filter.\n\n\n'
                 'You can limit the Loaded files by starting with a search string')
         self.excludebar.setToolTip(
                 'Multiple filters allowed. Will exclude any matched path from output.'
@@ -118,7 +123,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn3.setToolTip(
                 'Loads all directories and files that you have listed. You only need\n'
                 'to do this once after changing directories to search. Use again after\n'
-                'adding or subtracting directories. The Rescan button should be used for\n'
+                'adding or subtracting directories. The scan button should be used for\n'
                 'any updates to filters or search keywords as it saves time.')
         self.btn4.setToolTip(
                 'Rescan all files with any filter changes. <enter> in search bar\n'
@@ -202,7 +207,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         QMessageBox.about(self,title,message)
     def get_pattern(self):
         '''Gets search pattern from user search bar, creates regex list'''
-        print('get_pattern')
+        print('###get_pattern')
         temp= []
         temp1 = ""
         search_list = []
@@ -238,7 +243,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     
     def load_files(self):
         '''Loads all selected files from selected directories'''
-        print('load_files -start')
+        print('###load_files -start')
         self.full_file_list = set()
         if self.shortlist.count() > 0:
             for i in range(self.shortlist.count()):
@@ -250,10 +255,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
  
     def start_scan(self):
         '''gets paths from shortlist and scans them all'''
-        print('start_scan -start')
+        print('###start_scan -start')
         big_list = set([])
         my_dict = {}
         size = 0
+        is_hash = False
         self.filelist.clear()
         if len(self.full_file_list) > 0: 
             exact = self.checkbox_exact.isChecked()
@@ -269,23 +275,39 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 my_dict = compare_by_size(big_list)
             elif self.radiobyhash.isChecked():
                 print ('hash is checked')
+                my_dict = compare_by_size(big_list)
+                is_hash = True
+            else:
+                self.my_print('Nothing checked, bugged?')
+            duplicate_min = self.spinBox.cleanText()
+            final_dict = get_dupes(my_dict, duplicate_min,exact)
+            xx = sum(len(x) for x in final_dict.values())
+            print('afterdupesize:',xx)
+            if is_hash:
+                big_list = set()
+                for key,val in final_dict.items():
+                    for values in val:
+                        big_list.add(values)
+                size = len(big_list)
+                print('size:',size)
                 if size > 1000:
                     msg = ("Over " + str(size) + " files not allowed with hash"
                         " method, try smaller folders")
                     QMessageBox.about(self, "Sorry",msg)                       
                     print('Hash intensive, try smaller folder size')
+                    final_dict = {}
                 else:
                     my_dict = compare_by_hash(big_list)
-            else:
-                self.my_print('Nothing checked, bugged?')
-            duplicate_min = self.spinBox.cleanText()
-            self.my_print('-'*60)
-            self.my_print('Minimum duplicate size: '+ duplicate_min)
-            self.my_print('Pattern filter: ' + new_pattern)
-            final_dict = get_dupes(my_dict, duplicate_min,exact)
+                    final_dict = get_dupes(my_dict, duplicate_min,exact)
+                
+                    
             fill_widget(self.filelist, final_dict)
             key_count = len(final_dict)
             val_count = sum(len(v) for v in final_dict.values())
+            
+            self.my_print('-'*60)
+            self.my_print('Minimum duplicate size: '+ duplicate_min)
+            self.my_print('Pattern filter: ' + new_pattern)
             self.my_print(str(key_count) +' keys, ' + str(val_count) +' values, '+ str(size) +
                           ' total files matched!')
         else:
@@ -299,18 +321,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         
         
     def select_from_filelist(self,signal):
-        print('select -start')
+        print('###select -start')
         item = self.filelist.currentItem()
         fullpath = item.text(0)
         self.filelist.my_filepath = os.path.dirname(os.path.abspath(fullpath))
         print(self.filelist.my_filepath)
-        subprocess.Popen('explorer ' +self.filelist.my_filepath)
-        print('select -end')        
+        subprocess.Popen('explorer ' +self.filelist.my_filepath)      
         
         
     def add_to_shortlist(self):
         '''update shortlist with dir only and block duplicates'''
-        print('add_to_shortlist -start')
+        print('###add_to_shortlist -start')
         set1 = set([])
         if len(self.filetree.my_filepath) > 0 and is_dir(self.filetree.my_filepath):           
             set1.update([str(self.shortlist.item(i).text()) for i in range(self.shortlist.count())] )
@@ -318,19 +339,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.shortlist.clear()
             self.shortlist.addItems(set1)                 
         print(set1)
-        print('add_to_shortlist - end')
     
     
     def get_selection_index(self,item):
-        print ('get_selection_index -start')
+        print ('###get_selection_index -start')
         #print (self.shortlist.selectedItems())          
         print (item.text())
-        print('get_selection_index -end')
     
     
     def delete_from_shortlist(self):
         '''remove selected entries from shortlist'''
-        print ('delete_from_shortlist -start')
+        print ('###delete_from_shortlist -start')
         full_lst = [str(self.shortlist.item(i).text()) for i in range(self.shortlist.count())]
         lst = [item.text() for item in self.shortlist.selectedItems()]
         if len(lst) > 0:
@@ -342,7 +361,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def clear_shortlist(self):
         '''Empties all entries from shortlist'''
-        print('clear_shortlist -start')
+        print('###clear_shortlist -start')
         self.shortlist.clear()
 
 def is_dir(path):
@@ -352,7 +371,7 @@ def is_dir(path):
     
 def filtered_data(full_list, filter_strings):
     '''filters existing self.full_list data'''
-    print('filtered_data -start')
+    print('###filtered_data -start')
     file_list = set()
     for file_path_entry in full_list:
         if re.search(filter_strings, file_path_entry,re.IGNORECASE):
@@ -362,7 +381,7 @@ def filtered_data(full_list, filter_strings):
     
 def get_all_files(rootdirs,filter_strings):
     '''compares files'''
-    print('Get_all_files -start')   
+    print('###Get_all_files -start')   
     npath=rootdirs
     file_list = set()     
     for dirs,_,files in os.walk(npath):
@@ -375,7 +394,7 @@ def get_all_files(rootdirs,filter_strings):
 
 def compare_by_name(mylist):
     '''Comparing files in list by size, actually a set'''    
-    print('Compare by size')
+    print('###Compare by name')
     adict = {}
     for i in mylist:
         filename = os.path.basename(i)
@@ -385,7 +404,7 @@ def compare_by_name(mylist):
     
 def compare_by_size(mylist):
     '''Comparing files in list by size, actually a set'''    
-    print('Compare by size')
+    print('###Compare by size')
     adict = {}
     for i in mylist:
         statinfo = os.stat(i)
@@ -395,7 +414,7 @@ def compare_by_size(mylist):
 
 def compare_by_hash(mylist):
     '''Comparing files in list by hash, actually a set'''    
-    print('Compare by hash')
+    print('###Compare by hash')
     adict = {}
     for i in mylist:
         myhash = get_hash_md5(i)
@@ -418,14 +437,18 @@ def get_dupes(adict, min_duplicates,exact):
     The point is to find dupes unless checkbox is set, then
     i'm just listing every file with or without a pattern match
     '''
-    print("Get Duplicates")
+    print("###Get Duplicates")
+    #print("dupes:",adict)
     d1 = {}    
     min_duplicates = int(min_duplicates)
     if not exact:
         #only print keys with > values
+        print('   not exact')
         d1 = {k:v for k,v in adict.items() if len(v) >= min_duplicates}
     else:
+        print('   exact')
         d1 = {k:v for k,v in adict.items() if len(v) == min_duplicates}
+
     return d1
 
 
